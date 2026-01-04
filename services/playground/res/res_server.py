@@ -122,7 +122,7 @@ class ResourceServer(ThreadRunnable):
                 file.save(img_path)
                 file.close()
 
-                emitter.emit(DeviceScreenCapturedEvent(img_path=str(img_path), is_camera=True))
+                emitter.emit(DeviceScreenCapturedEvent(img_path=img_path, is_camera=True))
                 return HTTPResponseBody(message="OK").model_dump()
             except Exception as e:
                 logger.exception(e)

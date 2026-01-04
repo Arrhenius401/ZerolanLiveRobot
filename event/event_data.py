@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, List, Literal
 
 from pydantic import BaseModel
@@ -72,7 +73,7 @@ class PipelineOCREvent(BaseEvent):
 
 ### Device ###
 class DeviceScreenCapturedEvent(BaseEvent):
-    img_path: str
+    img_path: Path
     is_camera: bool
     type: str = EventKeyRegistry.Device.SCREEN_CAPTURED
 
