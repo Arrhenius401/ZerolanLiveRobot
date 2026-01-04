@@ -1,4 +1,5 @@
 import platform
+from typing import Tuple
 
 import pyautogui
 import pygetwindow as gw
@@ -8,6 +9,7 @@ from pygetwindow import Win32Window
 
 from common.io.file_sys import fs
 from devices.screen.base_screen import BaseScreen
+from pathlib import Path
 
 
 class WindowsScreen(BaseScreen):
@@ -37,11 +39,11 @@ class WindowsScreen(BaseScreen):
             logger.warning("Window capture failed: Unknown error.")
         return None, None
 
-    def capture_activated_win(self, k: float = 1.0):
+    def capture_activated_win(self, k: float = 1.0) -> Tuple[Image, Path]:
         w = gw.getActiveWindow()
         return self._capture(w, k)
 
-    def capture_with_title(self, win_title: str, k: float = 1.0):
+    def capture_with_title(self, win_title: str, k: float = 1.0) -> Tuple[Image, Path]:
         # Get the window
         win_list = gw.getWindowsWithTitle(win_title)
         assert len(win_list) != 0, f'Window capture failed: Can not find {win_title}'
@@ -50,7 +52,7 @@ class WindowsScreen(BaseScreen):
         w.activate()
         return self._capture(w, k)
 
-    def _capture(self, w: Win32Window, k: float) -> (Image, str):
+    def _capture(self, w: Win32Window, k: float) -> Tuple[Image, Path]:
         region = (
             w.centerx - k * w.width / 2, w.centery - k * w.height / 2, w.centerx + k * w.width / 2,
             w.centery + k * w.height / 2)
