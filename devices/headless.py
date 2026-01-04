@@ -52,8 +52,3 @@ def is_headless():
             return True
 
     return False
-
-if is_headless():
-    logger.info("Zerolan Live Robot: GUI disabled.")
-else:
-    logger.info("Zerolan Live Robot: GUI enabled.")
