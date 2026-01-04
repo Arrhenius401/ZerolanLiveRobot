@@ -43,7 +43,7 @@ class LinuxScreen(BaseScreen):
 
             img: mss.screenshot.ScreenShot = sct.grab(monitor)
             imgarr = np.array(img)
-            pil_image = PIL.Image.fromarray(imgarr[:, :, [2, 1, 0]], 'RGB') # Alpha channel is dropped.
+            pil_image = PIL.Image.fromarray(imgarr[:, :, [2, 1, 0]], 'RGB')  # Alpha channel is dropped.
 
             img_save_path = fs.create_temp_file_descriptor(prefix="screenshot", suffix=".png", type="image")
             pil_image.save(img_save_path)
@@ -51,5 +51,6 @@ class LinuxScreen(BaseScreen):
             return pil_image, img_save_path
 
     def _capture_window(self, win_title: str, k: float) -> Tuple[Image, Path]:
-        logger.warning(f"Window title provided but Linux cannot reliably capture specific windows. Capturing full screen instead.")
+        logger.warning(
+            f"Window title provided but Linux cannot reliably capture specific windows. Capturing full screen instead.")
         return self._capture_screen(k)
