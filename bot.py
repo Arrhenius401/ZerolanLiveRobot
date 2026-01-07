@@ -143,7 +143,7 @@ class ZerolanLiveRobot(BaseBot):
         def hotkey_handler(event: DeviceKeyboardPressEvent):
             logger.info(f'Hotkey toggle: {event.hotkey}')
             # 判断 hotkey 内容
-            if event.hotkey == _config.system.microphone_hotkey:
+            if _config.system.default_enable_microphone and event.hotkey == _config.system.microphone_hotkey:
                 with self.keyboard._microphone_state_lock:
                     # microphone
                     if self.mic.is_set_talk_enabled_event():
