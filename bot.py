@@ -147,7 +147,7 @@ class ZerolanLiveRobot(BaseBot):
                 if event.hotkey == _config.system.microphone_hotkey:
                     if _config.system.default_enable_microphone:
                         # 麦克风对象锁
-                        with self.keyboard._microphone_state_lock:
+                        with self.keyboard.microphone_state_lock:
                             if self.mic.is_set_talk_enabled_event():
                                 logger.debug(f'Hotkey toggled: MIC OFF')
 
@@ -157,7 +157,7 @@ class ZerolanLiveRobot(BaseBot):
                                 # 强制 emit 已经收集的片段
                                 self.mic.force_commit(is_emit=True)
 
-                                # 播放停止提示音
+                                # TODO: 播放停止提示音
                                 pass
                             else:
                                 logger.debug(f'Hotkey toggled: MIC ON')
@@ -165,7 +165,7 @@ class ZerolanLiveRobot(BaseBot):
                                 # 仅清空可能遗留的音频
                                 self.mic.force_commit(is_emit=False)
 
-                                # 播放开始提示音，block=True
+                                # TODO: 播放开始提示音，block=True
                                 pass
                                 
                                 # 开麦

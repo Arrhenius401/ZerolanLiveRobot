@@ -1,3 +1,5 @@
+from typing import Union
+
 from common.concurrent.abs_runnable import ThreadRunnable
 from event.event_emitter import emitter
 from event.event_data import DeviceKeyboardPressEvent
@@ -22,8 +24,8 @@ class SmartKeyboard(ThreadRunnable):
             assert type(string) is str, "hotkeys must be string type"
             if string in self._hotkeys:
                 assert False, "some hotkeys are set to be the same, please check your config.yaml setting"
-            self._hotkeys.add(self.str_to_Key(string))
-        self._current_hotkey: Key | KeyCode = None
+            self._hotkeys.add(self.str_to_key(string))
+        self._current_hotkey: Union[Key, KeyCode] = None
         self._toggle_debounce: bool = False   # 防抖
         self._key_listener = keyboard.Listener(
             on_press=self._on_key_press,
@@ -32,7 +34,7 @@ class SmartKeyboard(ThreadRunnable):
         self._key_listener.daemon = False
 
         # 外部环境可用的锁
-        self._microphone_state_lock = threading.Lock()
+        self.microphone_state_lock = threading.Lock()
 
     def start(self):
         super().start()
@@ -55,7 +57,7 @@ class SmartKeyboard(ThreadRunnable):
         self._toggle_debounce = True
         self._current_hotkey = key
 
-        emitter.emit(DeviceKeyboardPressEvent(hotkey=self.Key_to_str(key)))
+        emitter.emit(DeviceKeyboardPressEvent(hotkey=self.key_to_str(key)))
 
     def _on_key_release(self, key):
         # logger.debug(f'Release {key}')
@@ -67,7 +69,7 @@ class SmartKeyboard(ThreadRunnable):
         return "SmartKeyboard"
     
     @staticmethod
-    def str_to_Key(s: str) -> Key | KeyCode:
+    def str_to_key(s: str) -> Union[Key, KeyCode]:
         if not isinstance(s, str):
             raise TypeError("hotkey must be str")
 
@@ -93,7 +95,7 @@ class SmartKeyboard(ThreadRunnable):
         )
     
     @staticmethod
-    def Key_to_str(k: Key | KeyCode) -> str:
+    def key_to_str(k: Union[Key, KeyCode]) -> str:
         if hasattr(k, "name") and k.name is not None:   # Key
             return k.name
         if hasattr(k, "char") and k.char is not None:   # KeyCode
