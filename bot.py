@@ -319,12 +319,27 @@ class ZerolanLiveRobot(BaseBot):
                 emitter.emit(PipelineImgCapEvent(prediction=img_cap_prediction))
 
         @emitter.on(EventKeyRegistry.QQBot.QQ_MESSAGE)
-        async def on_qq_message(event: QQMessageEvent):
+        def on_qq_message(event: QQMessageEvent):
             prediction = self.emit_llm_prediction(event.message, direct_return=True)
             if prediction is None:
                 logger.warning("No response from LLM remote service and will not send QQ message.")
                 return
-            await self.qq.send_plain_message(prediction.response, event.group_id)
+
+            if "语音" in event.message:
+                tts_prompt = self.tts_prompt_manager.default_tts_prompt
+                query = TTSQuery(
+                    text=prediction.response,
+                    text_language="auto",
+                    refer_wav_path=tts_prompt.audio_path,
+                    prompt_text=tts_prompt.prompt_text,
+                    prompt_language=tts_prompt.lang,
+                    audio_type="wav"
+                )
+                prediction = self.tts.predict(query=query)
+                file_path = save_audio(prediction.wave_data, prefix="tts")
+                self.qq.send_speech(event.group_id, str(file_path))
+            else:
+                self.qq.send_plain_message(event.group_id, prediction.response)
 
         @emitter.on(EventKeyRegistry.Pipeline.OCR)
         def on_pipeline_ocr(event: PipelineOCREvent):

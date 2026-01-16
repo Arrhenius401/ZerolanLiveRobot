@@ -27,7 +27,6 @@ from services.live_stream.youtube import YouTubeService
 from services.obs.client import ObsStudioWsClient
 from services.playground.bridge import PlaygroundBridge
 from services.playground.res.res_server import ResourceServer
-from services.qqbot.bridge import QQBotBridge
 
 _config = get_config()
 
@@ -65,7 +64,7 @@ class ZerolanLiveRobotContext:
         self.browser: Browser | None = None
         self.speaker: Speaker | None = None
         self.playground: PlaygroundBridge | None = None
-        self.qq: QQBotBridge | None = None
+        self.qq = None
 
         self.bot_id: str | None = None
         self.bot_name: str | None = None
@@ -126,7 +125,9 @@ class ZerolanLiveRobotContext:
             self.custom_agent = CustomAgent(config=_config.pipeline.llm)
             self.playground = PlaygroundBridge(config=_config.service.playground)
         if _config.service.qqbot.enable:
-            self.qq = QQBotBridge(_config.service.qqbot)
+            from services.qqbot.napcat import QQBotService
+
+            self.qq: QQBotService = QQBotService(_config.service.qqbot)
         self.mic = SmartMicrophone(vad_mode=_config.system.microphone_vad_mode)
         self.keyboard = SmartKeyboard(hotkeys=[_config.system.microphone_hotkey])
         if _config.service.obs.enable:
