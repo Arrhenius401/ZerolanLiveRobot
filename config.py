@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 
 from character.config import CharacterConfig
+from common.utils.enum_util import try_get_pynput_key_enum_str
 from pipeline.base.config import PipelineConfig
 from services.config import ServiceConfig
 
@@ -9,6 +10,21 @@ class SystemConfig(BaseModel):
     default_enable_microphone: bool = Field(default=False,
                                             description="For safety, do not open your microphone by default. \n"
                                                         "You can set it `True` to enable your microphone")
+    microphone_vad_mode: int = Field(default=3,
+                                     description="Optionally, set its aggressiveness mode, which is an integer between 0 and 3. " \
+                                                 "0 is the least aggressive about filtering out non-speech, 3 is the most aggressive.")
+    microphone_hotkey: str = Field(default='f8',
+                                   description="Your microphone is set to be off when the program starts. One tap on this hotkey will change its status between on and off.\n" \
+                                               "You can pick your own hotkey on Key names like: {} ...".format(
+                                       try_get_pynput_key_enum_str()))
+    enable_clause_split: bool = Field(default=True,
+                                      description='If `True`, splits LLM responses into smaller clauses before sending to TTS service. '
+                                                  'This enables faster audio generation and reduced latency for real-time applications. \n'
+                                                  'Set to `False` to send full sentences as a single unit for more natural speech flow at the cost of longer wait times.')
+    enable_sentiment_analysis: bool = Field(default=False, description='Automatically analyzes sentiment to select appropriate TTS prompts. '
+                                                                      'This also increases token consumption and adds slight latency due to extra processing.')
+    enable_intelligent_memory: bool = Field(default=False,
+                                            description='🧪 EXPERIMENTAL: Automatically scores and filters conversation history entries based on sentiment, relevance, and safety.')
 
 
 class ZerolanLiveRobotConfig(BaseModel):

@@ -2,6 +2,7 @@ import asyncio
 import os
 from concurrent.futures.thread import ThreadPoolExecutor
 from pathlib import Path
+from queue import Queue
 
 from loguru import logger
 from zerolan.data.data.prompt import TTSPrompt
@@ -23,10 +24,11 @@ from common.io.file_type import AudioFileType
 from common.utils import audio_util, math_util
 from common.utils.img_util import is_image_uniform
 from common.utils.str_util import split_by_punc, is_blank
-from event.event_data import DeviceMicrophoneVADEvent, DeviceScreenCapturedEvent, PipelineOutputLLMEvent, \
+from event.event_data import DeviceMicrophoneVADEvent, DeviceKeyboardPressEvent, DeviceScreenCapturedEvent, \
+    PipelineOutputLLMEvent, \
     PipelineImgCapEvent, \
     QQMessageEvent, DeviceMicrophoneSwitchEvent, PipelineOutputTTSEvent, PipelineASREvent, \
-    PipelineOCREvent, SecondEvent, ConfigFileModifiedEvent, LiveStreamDanmakuEvent
+    PipelineOCREvent, SecondEvent, ConfigFileModifiedEvent, LiveStreamDanmakuEvent, DeviceSpeakerPlayEvent
 from event.event_emitter import emitter
 from event.registry import EventKeyRegistry
 from framework.base_bot import BaseBot
@@ -43,9 +45,10 @@ class ZerolanLiveRobot(BaseBot):
         self.tts_prompt_manager.set_lang(self.cur_lang)
         self._timer_flag = True
         self.tts_thread_pool = ThreadPoolExecutor(max_workers=1)
-        self.enable_exp_memory = False
-        self.enable_sentiment_analysis = False
-        self.enable_split_by_punc = False
+        self.enable_exp_memory = _config.system.enable_intelligent_memory
+        self.enable_sentiment_analysis = _config.system.enable_sentiment_analysis
+        self.enable_split_by_punc = _config.system.enable_clause_split
+        self.subtitles_queue = Queue()
         self.init()
         logger.info("🤖 Zerolan Live Robot: Initialized services successfully.")
 
@@ -60,6 +63,9 @@ class ZerolanLiveRobot(BaseBot):
             if _config.system.default_enable_microphone:
                 vad_thread = KillableThread(target=self.mic.start, daemon=True, name="VADThread")
                 threads.append(vad_thread)
+
+            keyboard_thread = KillableThread(target=self.keyboard.start, daemon=True, name="KeyboardThread")
+            threads.append(keyboard_thread)
 
             speaker_thread = KillableThread(target=self.speaker.start, daemon=True, name="SpeakerThread")
             threads.append(speaker_thread)
@@ -135,6 +141,45 @@ class ZerolanLiveRobot(BaseBot):
             # self.vad.resume()
             # logger.info("Because ZerolanPlayground client disconnected, open the local microphone.")
             pass
+
+        @emitter.on(EventKeyRegistry.Device.KEYBOARD_HOTKEY_PRESS)
+        def hotkey_handler(event: DeviceKeyboardPressEvent):
+            logger.info(f'Hotkey toggle: {event.hotkey}')
+            # 判断 hotkey 内容
+            try:
+                if event.hotkey == _config.system.microphone_hotkey:
+                    if _config.system.default_enable_microphone:
+                        # 麦克风对象锁
+                        with self.keyboard.microphone_state_lock:
+                            if self.mic.is_set_talk_enabled_event():
+                                logger.debug(f'Hotkey toggled: MIC OFF')
+
+                                # 关麦
+                                self.mic.unset_talk_enabled_event()
+                                
+                                # 强制 emit 已经收集的片段
+                                self.mic.force_commit(is_emit=True)
+
+                                # TODO: 播放停止提示音
+                                pass
+                            else:
+                                logger.debug(f'Hotkey toggled: MIC ON')
+
+                                # 仅清空可能遗留的音频
+                                self.mic.force_commit(is_emit=False)
+
+                                # TODO: 播放开始提示音，block=True
+                                pass
+                                
+                                # 开麦
+                                self.mic.set_talk_enabled_event()
+                    else:
+                        logger.info(f'Microphone is disabled at config.yaml')
+                elif False:
+                    # example
+                    pass
+            except Exception as e:
+                logger.exception(e)
 
         @emitter.on(EventKeyRegistry.Device.MICROPHONE_SWITCH)
         def on_open_microphone(event: DeviceMicrophoneSwitchEvent):
@@ -232,12 +277,12 @@ class ZerolanLiveRobot(BaseBot):
                     tool_called = self.custom_agent.run(prediction.transcript)
                     if tool_called:
                         logger.debug("Tool called.")
+                self.emit_llm_prediction(prediction.transcript)
             if self.playground:
                 if self.playground.is_connected:
                     self.playground.show_user_input_text(prediction.transcript)
             if self.obs:
                 self.obs.subtitle(prediction.transcript, which="user")
-            self.emit_llm_prediction(prediction.transcript)
 
         @emitter.on(EventKeyRegistry.LiveStream.DANMAKU)
         def on_danmaku(event: LiveStreamDanmakuEvent):
@@ -319,6 +364,14 @@ class ZerolanLiveRobot(BaseBot):
         def on_config_modified(_: ConfigFileModifiedEvent):
             config = get_config()
 
+        @emitter.on(EventKeyRegistry.Device.SPEAKER_PLAY)
+        def on_speaker_play(event: DeviceSpeakerPlayEvent):
+            if self.obs is not None:
+                assert event.audio_path.exists()
+                sample_rate, num_channels, duration = audio_util.get_audio_info(event.audio_path)
+                text = self.subtitles_queue.get()
+                self.obs.subtitle(text, which="assistant", duration=math_util.clamp(0, 5, duration - 1))
+
     def _tts_without_block(self, tts_prompt: TTSPrompt, text: str):
         def wrapper():
             query = TTSQuery(
@@ -331,10 +384,6 @@ class ZerolanLiveRobot(BaseBot):
             )
             prediction = self.tts.predict(query=query)
             logger.info(f"TTS: {query.text}")
-            sample_rate, num_channels, duration = audio_util.get_audio_info(prediction.wave_data, prediction.audio_type)
-
-            if self.obs is not None:
-                self.obs.subtitle(text, which="assistant", duration=math_util.clamp(0, 5, duration - 1))
 
             self.play_tts(PipelineOutputTTSEvent(prediction=prediction, transcript=text))
 
@@ -371,6 +420,10 @@ class ZerolanLiveRobot(BaseBot):
         # Filter applied here
         is_filtered = self.filter.filter(prediction.response)
 
+        if is_filtered:
+            logger.warning(f"LLM (Filtered): {prediction.response}")
+            return None
+
         # Remove \n start
         if prediction.response[0] == '\n':
             prediction.response = prediction.response[1:]
@@ -380,6 +433,9 @@ class ZerolanLiveRobot(BaseBot):
         if self.enable_exp_memory:
             if self.exp_memory(text, is_filtered, prediction.response, len(prediction.response)):
                 self.llm_prompt_manager.reset_history(prediction.history)
+        else:
+            # If experiment memory disabled, history should be updated for each chat commit.
+            self.llm_prompt_manager.reset_history(prediction.history)
 
         if not direct_return:
             emitter.emit(PipelineOutputLLMEvent(prediction=prediction))
@@ -414,6 +470,8 @@ class ZerolanLiveRobot(BaseBot):
 
     def play_tts(self, event: PipelineOutputTTSEvent):
         prediction = event.prediction
+        text = event.transcript
+        self.subtitles_queue.put(text)
         audio_path = save_audio(wave_data=prediction.wave_data, format=AudioFileType(prediction.audio_type),
                                 prefix='tts')
         if self.live2d_viewer:
@@ -421,8 +479,10 @@ class ZerolanLiveRobot(BaseBot):
         if self.playground:
             if self.playground.is_connected:
                 self.playground.play_speech(bot_id=self.bot_id, audio_path=audio_path,
-                                            transcript=event.transcript, bot_name=self.bot_name)
+                                            transcript=text, bot_name=self.bot_name)
                 logger.debug("Remote speaker enqueue speech data")
         else:
-            self.speaker.playsound(audio_path, block=True)
+            # `playsound(audio_path, block=True)` will block the thread, use `enqueue_sound(audio_path)` instead
+            self.speaker.enqueue_sound(audio_path)
             logger.debug("Local speaker enqueue speech data")
+

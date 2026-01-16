@@ -1,4 +1,5 @@
 import os
+import uuid
 import zipfile
 from pathlib import Path
 from typing import Literal
@@ -58,7 +59,7 @@ class FileSystem:
         self.temp_dir.mkdir(exist_ok=True)
         if suffix[0] == '.':
             suffix = suffix[1:]
-        filename = f"{prefix}-{get_time_string()}.{suffix}"
+        filename = f"{prefix}-{get_time_string()}-{uuid.uuid4()}.{suffix}"
         typed_dir = self.temp_dir.joinpath(type)
         typed_dir.mkdir(exist_ok=True)
         return typed_dir.joinpath(filename).absolute()
