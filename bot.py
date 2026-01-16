@@ -420,6 +420,9 @@ class ZerolanLiveRobot(BaseBot):
         # Filter applied here
         is_filtered = self.filter.filter(prediction.response)
 
+        if is_filtered:
+            return None
+
         # Remove \n start
         if prediction.response[0] == '\n':
             prediction.response = prediction.response[1:]
