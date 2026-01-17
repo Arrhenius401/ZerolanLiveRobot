@@ -1,11 +1,34 @@
 import os
 import time
+from common.io.file_sys import fs
+
+
+def _set_napcat_env():
+    # Prevent ncatbot from creating default directories directly in the project directory.
+    # WebUI, plugins are disabled.
+    napcat_dir = fs.temp_dir.joinpath('napcat')
+    napcat_dir.mkdir(parents=True, exist_ok=True)
+    napcat_log_dir = napcat_dir.joinpath('logs')
+    napcat_log_dir.mkdir(parents=True, exist_ok=True)
+    napcat_plugin_dir = napcat_dir.joinpath('plugins')
+    napcat_plugin_dir.mkdir(parents=True, exist_ok=True)
+    os.environ['NCATBOT_CONFIG_PATH'] = str(napcat_dir.joinpath('config.yaml'))
+    os.environ['LOG_FILE_PATH'] = str(napcat_log_dir)
+
+    from ncatbot.utils import ncatbot_config
+    ncatbot_config.napcat.enable_webui = False
+    ncatbot_config.plugin.skip_plugin_load = True
+    ncatbot_config.plugin.plugins_dir = str(napcat_plugin_dir)
+
+
+# Note: Do not import any `ncatbot` modules before `_set_napcat_env()` is called.
+_set_napcat_env()
 
 from loguru import logger
 from ncatbot.core import BotClient, GroupMessageEvent, PrivateMessageEvent
+
 from typeguard import typechecked
 
-from common.io.file_sys import fs
 from event.event_data import QQMessageEvent
 from event.event_emitter import emitter
 from services.qqbot.config import QQBotServiceConfig
@@ -13,9 +36,10 @@ from services.qqbot.config import QQBotServiceConfig
 
 class QQBotService:
     def __init__(self, config: QQBotServiceConfig):
+
         self._bot = BotClient()
         self._api = self._bot.run_backend(bt_uin=config.qq_num, ws_uri=config.ws_uri,
-                                          ws_token=config.ws_token, debug=False, enable_webui_interaction=False)
+                                          ws_token=config.ws_token, debug=False)
         self._root_user = config.root
         self._groups = config.groups if config.groups is not None else []
         logger.info("QQ bot started with Napcat backend.")
@@ -104,5 +128,4 @@ class QQBotService:
         pass
 
     def stop(self):
-        # self._bot.bot_exit()
-        pass
+        self._bot.bot_exit()
