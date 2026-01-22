@@ -3,7 +3,7 @@ from functools import wraps
 
 from loguru import logger
 
-
+# 函数执行后打印 “服务初始化完成” 日志
 def log_init(service_name: str):
     def decorator(func):
         @wraps(func)
@@ -16,7 +16,7 @@ def log_init(service_name: str):
 
     return decorator
 
-
+# 函数执行前后打印 “服务启动/停止” 日志
 def log_start(service_name: str):
     def decorator(func):
         @wraps(func)
@@ -30,7 +30,7 @@ def log_start(service_name: str):
 
     return decorator
 
-
+# 函数执行前后打印 “服务停止” 日志
 def log_stop(service_name: str):
     def decorator(func):
         @wraps(func)
@@ -43,7 +43,6 @@ def log_stop(service_name: str):
         return wrapper
 
     return decorator
-
 
 def log_run_time(time_limit=10):
     """

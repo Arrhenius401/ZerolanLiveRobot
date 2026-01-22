@@ -10,7 +10,7 @@ from typeguard import typechecked
 
 from common.io.file_type import AudioFileType
 
-
+# 提取音频的采样率、声道数、时长
 @typechecked
 def get_audio_info(file: Path | str | bytes | BytesIO, type: str | None = None) -> (int, int, float):
     """
@@ -48,7 +48,7 @@ def get_audio_info(file: Path | str | bytes | BytesIO, type: str | None = None) 
 
     return sample_rate, num_channels, duration
 
-
+# 校验音频真实格式（基于字节头特征）
 @typechecked
 def get_audio_real_format(audio: bytes | str | Path) -> str:
     """
@@ -77,7 +77,7 @@ def get_audio_real_format(audio: bytes | str | Path) -> str:
     else:
         raise NotImplementedError("Unknown audio format.")
 
-
+# 将 numpy 数组（音频数据）转为 WAV 字节流
 @typechecked
 def from_ndarray_to_bytes(speech_chunk, sample_rate):
     """
@@ -90,7 +90,7 @@ def from_ndarray_to_bytes(speech_chunk, sample_rate):
     wavfile.write(filename=wave_file, rate=sample_rate, data=speech_chunk)
     return wave_file.getvalue()
 
-
+# 将音频字节流转为 numpy 数组
 @typechecked
 def from_bytes_to_np_ndarray(bytes_data: bytes, dtype: str = "float32") -> (np.ndarray, int):
     """

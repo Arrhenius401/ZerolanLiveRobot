@@ -10,14 +10,14 @@ from zerolan.data.pipeline.llm import LLMQuery, Conversation, RoleEnum
 from pipeline.llm.llm_sync import LLMSyncPipeline
 from pipeline.llm.config import LLMPipelineConfig
 
-
+""" 将langchain的message列表，转换成pipeline的query列表 """
 def convert(messages: list[BaseMessage]) -> list[Conversation]:
     result = []
     for message in messages:
         result.append(convert_pipeline_query(message))
     return result
 
-
+""" 将langchain的message转换成pipeline的query """ 
 def convert_pipeline_query(message: BaseMessage):
     if isinstance(message, AIMessage):
         return Conversation(role=RoleEnum.assistant, content=message.content, metadata=None)

@@ -2,7 +2,7 @@ import ipaddress
 
 import netifaces as ni
 
-
+# 遍历本机所有网络接口（排除回环接口lo），获取第一个可用的 IP 地址（IPv4/IPv6 可选）
 def get_local_ip(ipv6=False) -> str | None:
     interfaces = ni.interfaces()  # 获取所有网络接口
     for interface in interfaces:
@@ -31,7 +31,7 @@ def get_local_ip(ipv6=False) -> str | None:
                     continue
     return None
 
-
+# 校验输入的字符串是否为合法 IPv6 地址
 def is_ipv6(host: str) -> bool:
     """Check if the given host string is an IPv6 address."""
     if not host:

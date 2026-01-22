@@ -10,18 +10,23 @@ from common.utils.time_util import get_time_string
 
 ResType = Literal["image", "video", "audio", "model"]
 
-
+"""
+    - 文件系统操作类
+    提供项目目录、临时目录的路径获取和临时文件创建功能
+"""
 class FileSystem:
     def __init__(self):
         self._proj_dir: Path | None = None
         self._temp_dir: Path | None = None
         self._create_temp_dir()
 
+    # 初始化临时目录，并创建 image/audio/video/model 子目录
     def _create_temp_dir(self):
         self.temp_dir.mkdir(exist_ok=True)
         for dir_name in ["image", "audio", "video", "model"]:
             self.temp_dir.joinpath(dir_name).mkdir(exist_ok=True)
 
+    # 自动识别项目根目录（若当前工作目录是 tests，则取父目录），返回绝对路径
     @property
     def project_dir(self) -> Path:
         """
@@ -37,6 +42,7 @@ class FileSystem:
                 self._proj_dir = Path(cur_work_dir)
         return self._proj_dir.absolute()
 
+    # 默认指向项目根目录下的 .temp/，自动创建
     @property
     def temp_dir(self) -> Path:
         """
@@ -47,6 +53,7 @@ class FileSystem:
             self._temp_dir = self.project_dir.joinpath('.temp/')
         return self._temp_dir.absolute()
 
+    # 生成带前缀、后缀、时间戳的临时文件路径（按资源类型放入对应子目录），自动处理后缀的 . 前缀（如 .wav → wav）
     @typechecked
     def create_temp_file_descriptor(self, prefix: str, suffix: str, type: ResType) -> Path:
         """
@@ -64,6 +71,7 @@ class FileSystem:
         typed_dir.mkdir(exist_ok=True)
         return typed_dir.joinpath(filename).absolute()
 
+    # 递归遍历指定目录，查找包含目标名称的子目录，返回绝对路径（未找到返回 None）
     @typechecked
     def find_dir(self, dir_path: str, tgt_dir_name: str) -> Path | None:
         """
@@ -80,6 +88,7 @@ class FileSystem:
                     return Path(path).absolute()
         return None
 
+    # 将指定目录下的所有文件压缩为 ZIP 包（追加模式，保留相对路径）
     @typechecked
     def compress(self, src_dir: str | Path, tgt_dir: str | Path):
         src_dir = Path(src_dir).absolute()

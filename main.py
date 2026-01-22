@@ -3,7 +3,7 @@ import asyncio
 from bot import ZerolanLiveRobot
 from loguru import logger
 
-
+""" 启动入口 """
 async def main():
     try:
         bot = ZerolanLiveRobot()

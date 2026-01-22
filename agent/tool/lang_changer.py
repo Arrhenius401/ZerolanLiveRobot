@@ -9,11 +9,11 @@ from common.utils.enum_util import enum_members_to_list
 from event.event_data import LanguageChangeEvent
 from event.event_emitter import emitter
 
-
+""" 语言切换器输入参数 """
 class LangChangeInput(BaseModel):
     target_lang: str = Field(description=f"Target language: {enum_members_to_list(Language)}, Only return ")
 
-
+""" 语言切换器 """
 class LangChanger(BaseTool):
     name: str = "语言切换"
     description: str = "当用户需要切换语言时，使用此工具"

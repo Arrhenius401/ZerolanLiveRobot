@@ -33,15 +33,19 @@ class CustomAgent:
             self._tools[tool.name] = tool
 
     def run(self, query: str) -> bool:
+        # 构造消息列表（系统提示词 + 用户查询），调用ToolAgent生成响应
         messages = [self._model.system_prompt, HumanMessage(query)]
         ai_msg: AIMessage = self._model.invoke(messages)
         messages.append(ai_msg)
+
+        # 解析响应中的tool_calls，遍历调用已注册的工具（工具名小写匹配
         if len(ai_msg.tool_calls) == 0:
             logger.debug("No tool to call in this conversation")
             return False
         for tool_call in ai_msg.tool_calls:
             tool_name = tool_call["name"].lower()
             selected_tool: BaseTool = self._tools.get(tool_name, None)
+            # 执行工具调用并捕获异常，返回是否成功调用工具的布尔值
             if selected_tool is not None:
                 try:
                     tool_msg = selected_tool.invoke(tool_call)

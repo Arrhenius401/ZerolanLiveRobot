@@ -1,3 +1,4 @@
+# 提取字典所有 value 并转为列表
 def to_value_list(d: dict):
     if isinstance(d, dict):
         ret = []

@@ -6,7 +6,7 @@ from typeguard import typechecked
 
 from services.playground.data import FileInfo
 
-
+# 提取文件的完整元信息
 @typechecked
 def get_file_info(path: str) -> FileInfo:
     assert os.path.exists(path)
@@ -25,7 +25,7 @@ def get_file_info(path: str) -> FileInfo:
         file_size=file_size,
     )
 
-
+# 将本地路径转为标准 file URI
 def path_to_uri(path):
     path = os.path.abspath(path)
     path = path.replace('\\', '/')

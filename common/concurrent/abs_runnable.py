@@ -4,7 +4,12 @@ from typing import Dict, List
 
 from loguru import logger
 
+""" 
+    定义两个抽象类（AsyncRunnable/ThreadRunnable），规范 “可启动 / 可停止” 的组件行为
+    类比 Java 的Runnable接口，但拆分了异步（async） 和线程（同步） 版本 
+"""
 
+""" 异步版可运行组件（基于Python async/await） """
 class AsyncRunnable:
 
     def __init__(self):
@@ -20,6 +25,7 @@ class AsyncRunnable:
         self._activate = True
         add_runnable(self)
 
+    # 激活检查：未激活则抛异常
     def activate_check(self):
         if not self._activate:
             raise RuntimeError("This runnable object is not activated. Call `start()` first.")
@@ -28,7 +34,7 @@ class AsyncRunnable:
     async def stop(self):
         self._activate = False
 
-
+""" 线程版可运行组件（同步） """
 class ThreadRunnable:
 
     def __init__(self):

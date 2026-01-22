@@ -1,3 +1,4 @@
+""" 继承 Python 原生list，实现 “固定最大容量” 的列表 """
 class LimitList(list):
     def __init__(self, maxsize: int):
         super().__init__()

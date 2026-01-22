@@ -45,6 +45,7 @@ class ToolAgent(LangChainAdaptedLLM):
     def __init__(self, config: LLMPipelineConfig):
         super().__init__(config)
 
+    """ 解析 LLM 返回的 JSON 内容，提取工具名和参数，封装为 LangChain 的ToolCall对象（校验工具名是否在已绑定列表中） """
     def _parse_tool_call_intent(self, content: str) -> list[ToolCall] | None:
         try:
             tool_call = smart_load_json_like(content)
@@ -67,6 +68,7 @@ class ToolAgent(LangChainAdaptedLLM):
         except Exception:
             logger.warning("Seems like no tool call need.")
 
+    """ 重写父类的生成逻辑，调用 LLM 后解析工具调用意图，若有工具调用则返回带tool_calls的AIMessage，否则返回普通文本消息 """
     def _generate(self, messages: list[BaseMessage], stop: Optional[list[str]] = None,
                   run_manager: Optional[CallbackManagerForLLMRun] = None, **kwargs: Any) -> ChatResult:
         # Replace this with actual logic to generate a response from a list
@@ -87,6 +89,7 @@ class ToolAgent(LangChainAdaptedLLM):
         generation = ChatGeneration(message=message)
         return ChatResult(generations=[generation])
 
+    """ 绑定工具列表，将工具转换为 OpenAI 格式（convert_to_openai_tool），记录工具名到_tool_names"""
     def bind_tools(
             self,
             tools: Sequence[
@@ -122,6 +125,7 @@ class ToolAgent(LangChainAdaptedLLM):
         """
         return self
 
+    """ 构造工具调用的系统提示词（强制输出 JSON 格式的工具调用指令，指定工具名 + 参数）"""
     @property
     def system_prompt(self):
         return SystemMessage(content="你现在是一个有用的AI Agent，你可以使用的工具有\n"

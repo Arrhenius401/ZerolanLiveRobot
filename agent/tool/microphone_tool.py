@@ -6,11 +6,11 @@ from pydantic import BaseModel, Field
 from event.event_data import DeviceMicrophoneSwitchEvent
 from event.event_emitter import emitter
 
-
+""" 麦克风控制器输入参数 """
 class MicrophoneToolInput(BaseModel):
     switch: bool = Field(description="`true` if open the microphone, `false` if close the microphone.")
 
-
+""" 麦克风控制器 """
 class MicrophoneTool(BaseTool):
     name: str = "麦克风控制器"
     description: str = "当用户要求打开或关闭麦克风时，使用此工具"

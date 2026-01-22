@@ -15,10 +15,12 @@ from event.event_emitter import emitter
 from manager.config_manager import save_config
 
 """
-Analyse config schema of the project and automatically generate config WebUI page using gradio.
+    - 动态配置 WebUI 生成器
+    基于 Pydantic 的 BaseModel 配置模型，自动生成 Gradio 可视化配置页面
+    支持配置项的可视化编辑和保存，实现 “配置模型 → WebUI” 的动态映射。
 """
 
-
+# 将 Pydantic 字段类型映射为对应的 Gradio 组件
 def _add_field_component(field_info: FieldInfo, field_name: str, field_val: Any) -> gr.Component:
     """
     Convert Pydantic field type to appropriate Gradio component.
@@ -59,8 +61,11 @@ def _add_field_component(field_info: FieldInfo, field_name: str, field_val: Any)
         logger.warning(f"Field {field_name} with type {field_type} not supported.")
     return comp
 
-
+""""
+    - 核心页面生成类
+"""
 class DynamicConfigPage:
+    # 接收 BaseModel 实例，初始化 Gradio Blocks（软主题）、输入组件列表、字段设置器列表
     def __init__(self, model: BaseModel):
         self.model: BaseModel = model
         self._theme = gr.themes.Soft()
@@ -69,6 +74,7 @@ class DynamicConfigPage:
         self.assign_funcs: List[Tuple[Callable, BaseModel, str, FieldInfo]] = []
         self._field_setters: List[FieldSetter] = []
 
+    # 生成 Gradio 页面，包含配置项的输入组件和保存按钮
     @typechecked
     def launch(self, share: bool = False):
         """
@@ -76,6 +82,7 @@ class DynamicConfigPage:
         """
         # Add components based on model fields
         with self.blocks:
+            # 渲染页面标题和说明
             gr.Markdown("# Config Page")
             with gr.Row():
                 gr.Markdown(
@@ -83,6 +90,7 @@ class DynamicConfigPage:
                     "> You can also modify the saved config file at `resource/config.yaml` manually.")
                 btn = gr.Button("Save Config")
 
+                # 生成 “保存配置” 按钮，绑定点击事件：遍历输入组件值 → 调用字段设置器更新模型 → 保存配置文件 → 触发配置修改事件
                 def on_click(*args):
                     assert len(args) == len(self.input_comps) == len(self._field_setters)
                     for setter, arg in zip(self._field_setters, args):
@@ -96,6 +104,7 @@ class DynamicConfigPage:
                         gr.Error("Failed to save config file.")
 
                 btn.click(on_click, inputs=self.input_comps)
+            # 递归添加模型字段对应的组件
             self._add_block_components(self.model)
         self.blocks.launch(share)
 
@@ -105,6 +114,7 @@ class DynamicConfigPage:
 
         await async_start()
 
+    # 递归添加模型字段对应的组件
     @typechecked
     def _add_block_components(self, model: BaseModel):
         """
@@ -130,13 +140,16 @@ class DynamicConfigPage:
                         self.input_comps.append(comp)
                         self._field_setters.append(FieldSetter(model, field_name))
 
-
+"""
+    - 配置项字段设置器类
+"""
 class FieldSetter:
     def __init__(self, model: BaseModel, field_name: str):
         ver_check.check_pydantic_ver()
         self._model = model
         self._field_name = field_name
 
+    # 将 Gradio 组件的输入值转换为字段目标类型
     def _field_convert(self, field_name: str, val: Union[str, List[List[str]]]):
         """
         Convert value to fit target type of field.
@@ -170,6 +183,7 @@ class FieldSetter:
             res = val
         return res
 
+    # 更新模型字段值，并触发模型校验（model_validate），保证配置合法性
     def set_field(self, val: Any):
         # Convert value base on the type of the field.
         field_name = self._field_name

@@ -2,12 +2,12 @@ from typing import List
 
 from common.enumerator import Language
 
-
+# 校验字符串是否为 “空
 def is_blank(s: str) -> bool:
     """Check if a string is None, empty, or contains only whitespace."""
     return s is None or not s.strip() or s == ""
 
-
+# 按指定语言的标点符号分割文本
 def split_by_punc(text: str, lang: Language) -> List[str]:
     if lang == Language.ZH:
         cut_punc = "，。！？"

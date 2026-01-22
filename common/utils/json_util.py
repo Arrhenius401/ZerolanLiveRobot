@@ -8,7 +8,7 @@ Notes:
 import json
 from json import JSONDecodeError
 
-
+# 从混杂的文本中提取 JSON 片段（仅提取第一个 JSON 对象 / 数组的首尾）
 def _extract_json_from_text(text: str):
     """
     从如下的文档中获取JSON字符串：
@@ -37,7 +37,7 @@ def _extract_json_from_text(text: str):
             break
     return text[start:end + 1]
 
-
+# 移除 JSON 字符串末尾多余的右大括号，尝试解析直到成功
 def _remove_end_extra_braces(text: str):
     """
     {...}
@@ -58,7 +58,7 @@ def _remove_end_extra_braces(text: str):
             errs.append(e)
     raise errs[-1]
 
-
+# 对外接口
 def smart_load_json_like(content: str):
     json_val = _extract_json_from_text(content)
     json_val = _remove_end_extra_braces(json_val)

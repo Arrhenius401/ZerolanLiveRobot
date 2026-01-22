@@ -8,11 +8,11 @@ from pydantic import BaseModel, Field
 from services.playground.data import CreateGameObjectResponse
 from services.playground.bridge import PlaygroundBridge
 
-
+""" 游戏对象创建器输入参数 """
 class GameObjectCreatorInput(BaseModel):
     dto: CreateGameObjectResponse = Field(description="DTO of the game object will be created")
 
-
+""" 游戏对象创建器（依赖游戏桥接器） """
 class GameObjectCreator(BaseTool):
     name: str = "游戏对象创建器"
     description: str = "当用户要求你创建一个游戏对象（例如立方体、球体）的时候，使用此工具。"

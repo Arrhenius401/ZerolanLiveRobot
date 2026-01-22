@@ -17,6 +17,10 @@ from common.utils import web_util
 # Author: AkagawaTsurunaki #
 ############################
 
+"""
+    - 通用 Json Web Socket 服务器
+    支持 JSON 格式的数据收发，支持子协议校验
+"""
 class JsonWsServer(ThreadRunnable):
     def __init__(self, host: str, port: int, subprotocols: List[str] = None):
         super().__init__()
@@ -38,6 +42,7 @@ class JsonWsServer(ThreadRunnable):
     def name(self):
         return "JsonWsServer"
 
+    # 基于websockets库创建 WebSocket 服务，自动识别 IPv4/IPv6，通过serve_forever()持续监听连接
     def start(self):
         super().start()
         is_ipv6 = web_util.is_ipv6(self.host)
@@ -49,6 +54,7 @@ class JsonWsServer(ThreadRunnable):
             logger.info(f"WebSocket server started at {self.host}:{self.port}")
             self.ws.serve_forever()
 
+    # 停止服务
     def stop(self):
         super().stop()
         if self.ws is not None:
@@ -57,7 +63,7 @@ class JsonWsServer(ThreadRunnable):
     @property
     def connections(self):
         return len(self._connections)
-
+    # 每个客户端连接的核心处理循环：校验子协议 -> 记录新连接 -> 循环接收客户端消息，解析为 JSON 后触发所有on_msg_handlers
     def _handle_json_recv(self, ws: Connection):
         """处理每个 WebSocket 连接"""
         # 处理 Sec-WebSocket-Protocol 的 Header
@@ -82,28 +88,33 @@ class JsonWsServer(ThreadRunnable):
         except ConnectionClosed as e:
             self._remove_connection(ws, e)
 
+    # 校验客户端使用的子协议是否在服务端允许的列表中，不匹配则抛出异常
     def _validate_subprotocols(self, ws: Connection):
         if ws.subprotocol is not None:
             if ws.subprotocol not in self.subprotocols:
                 logger.warning(f"Not supported sub protocol: {ws.id} {ws.remote_address}")
                 raise ValueError(f"Not supported sub protocol: {ws.id} {ws.remote_address}")
 
+    # 维护活跃连接列表，触发连接建立的处理器，并打印日志
     def _add_connection(self, ws: Connection):
         self._connections[ws] = str(ws.id)
         for handler in self.on_open_handlers:
             handler(ws)
         logger.info(f"WebSocket client connected: {ws.id} {ws.remote_address}")
 
+    # 维护活跃连接列表，触发连接关闭的处理器，并打印日志
     def _remove_connection(self, ws: Connection, e: ConnectionClosed):
         ws_id = self._connections.pop(ws)
         for handler in self.on_close_handlers:
             handler(ws, e.rcvd.code, e.rcvd.reason)
         logger.warning(f"WebSocket client disconnected: {ws_id}")
 
+    # 触发所有异常处理器，并打印日志
     def _handle_exception(self, ws: Connection, e: Exception):
         for handler in self.on_err_handlers:
             handler(ws, e)
 
+    # 发送 JSON 数据给所有连接的客户端
     def send_json(self, data: any):
         if isinstance(data, BaseModel):
             msg = data.model_dump_json(indent=4)

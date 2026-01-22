@@ -23,11 +23,11 @@ def get_html(url: str):
 # See:
 #   https://python.langchain.com/docs/how_to/custom_tools/#subclassing-the-basetool-class
 
-
+""" 百度百科搜索工具输入参数 """
 class BaiduBaikeToolInput(BaseModel):
     keyword: str = Field(description="The keyword you want to search.")
 
-
+""" 百度百科搜索工具 """
 class BaiduBaikeTool(BaseTool):
     name: str = "百度百科"
     description: str = "当你需要搜索某个专业的知识点、概念的时候，使用此工具。"
@@ -51,7 +51,7 @@ class BaiduBaikeTool(BaseTool):
         else:
             raise ToolException("Keyword should not be empty")
 
-
+""" 萌娘百科搜索工具 """
 class MoeGirlTool(BaseTool):
     name: str = "萌娘百科"
     description: str = "当你需要搜索二次元人物、游戏、漫画等资料时，使用此工具。"

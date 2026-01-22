@@ -25,16 +25,18 @@ from pipeline.ocr.ocr_sync import stringify
 _config = get_config()
 _model = LangChainAdaptedLLM(config=_config.pipeline.llm)
 
-
+""" 文件搜索助手 """
 @log_run_time()
 def find_file(files: List[dict], question: str) -> str | None:
     system_template = '你现在是文件搜索助手，请根据用户的提问，寻找出最匹配的文件，并返回它的ID。注意：你只需要返回ID，不要输出任何其他内容'
 
+    # ChatPromptTemplate 的作用：定义对话式提示词模板， 明确包含了两个占位符
     prompt_template = ChatPromptTemplate.from_messages(
         [("system", system_template), ("user",
                                        "{files} \n\n【你的任务】现在根据上述文件信息，和用户提问```\n{question}\n```\n寻找出最匹配的文件，并返回它的ID\n注意：你只需要返回ID，不要输出任何其他内容")]
     )
 
+    # invoke() 方法的作用：填充模板变量，生成完整提示词
     result = prompt_template.invoke({"files": files, "question": question})
     result.to_messages()
     response = _model.invoke(result)
@@ -44,7 +46,7 @@ def find_file(files: List[dict], question: str) -> str | None:
             return file["id"]
     return None
 
-
+""" OCR识别助手 """
 @log_run_time()
 def find_focus(region_results: List[RegionResult]) -> RegionResult:
     system_template = "你的任务：你需要在下列的OCR识别结果中找到最具有值得注意的信息，最后返回其标号 [i]。"
@@ -68,7 +70,7 @@ def find_focus(region_results: List[RegionResult]) -> RegionResult:
 
     return region_results[idx]
 
-
+""" 问题回答助手 """
 @log_run_time()
 def answer_question(text: str, question: str) -> str:
     system_template = "你现在是一个问答助手，请仔细阅读文章内容，基于你阅读的内容，充分、正确地回答用户提出的问题。"
@@ -83,7 +85,7 @@ def answer_question(text: str, question: str) -> str:
 
     return response.content
 
-
+""" 情感分析助手 """
 @log_run_time()
 def sentiment_analyse(sentiments: List[str], text: str) -> str:
     # If you only set 1 tts prompt, then there is no need to analyse sentiment
@@ -112,7 +114,7 @@ def sentiment_analyse(sentiments: List[str], text: str) -> str:
                 return sentiment
     return sentiments[0]
 
-
+""" 翻译助手 """
 @log_run_time()
 def translate(text: str, src_lang: str | Language, tgt_lang: str | Language) -> str:
     if isinstance(src_lang, Language):
@@ -132,7 +134,7 @@ def translate(text: str, src_lang: str | Language, tgt_lang: str | Language) -> 
 
     return response.content
 
-
+""" 文本总结助手 """
 @log_run_time()
 def summary(text: str, max_len: int = 100) -> AIMessage:
     """
@@ -156,7 +158,7 @@ def summary(text: str, max_len: int = 100) -> AIMessage:
 
     return response
 
-
+""" 历史对话总结助手 """
 @log_run_time()
 def summary_history(history: List[Conversation]) -> AIMessage:
     system_template = "将这段用户与你的对话总结成一段话，需要包含重要细节。"
@@ -172,7 +174,7 @@ def summary_history(history: List[Conversation]) -> AIMessage:
 
     return response
 
-
+""" 游戏对象修改助手 """
 @log_run_time()
 def model_scale(info: List[GameObject], question: str) -> ScaleOperationResponse | None:
     config = get_config()
@@ -195,7 +197,7 @@ def model_scale(info: List[GameObject], question: str) -> ScaleOperationResponse
     json = smart_load_json_like(response.content)
     return ScaleOperationResponse.model_validate(json)
 
-
+""" 情感评分助手 """
 @log_run_time()
 def sentiment_score(text: str) -> float:
     system_template = "你的任务：你现在是一个情感分析助手，你将要对所给的文句进行情感分析，从-1到1内的一个浮点数，数字越小代表情感越负面，数字越大代表情感越正面\n输出格式：必须仅返回数字，不要输出多余内容。"
@@ -213,7 +215,7 @@ def sentiment_score(text: str) -> float:
     except Exception:
         return 0.0
 
-
+""" 文本记忆价值评分助手 """
 @log_run_time()
 def memory_score(text: str) -> float:
     system_template = "你的任务：你现在是一个文本是否存储为记忆的价值分析助手，你将要对所给的文句进行分析，从-1到1内的一个浮点数，数字越小代表该段文字越没有价值，应该被丢弃，数字越大代表该段文字越有价值，应该被保留\n输出格式：必须仅返回数字，不要输出多余内容。\n"
